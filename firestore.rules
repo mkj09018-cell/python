@@ -1,0 +1,113 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Global Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // 3. Entity Validations
+    function isValidPost(data) {
+      return data.keys().hasAll(['title', 'content', 'region', 'imageUrl', 'authorId', 'createdAt']) &&
+             data.keys().size() == 6 &&
+             data.title is string && data.title.size() <= 200 &&
+             data.content is string && data.content.size() <= 10000 &&
+             data.region is string && data.region.size() <= 50 &&
+             data.imageUrl is string && data.imageUrl.size() <= 500 &&
+             data.authorId == request.auth.uid &&
+             data.createdAt == request.time;
+    }
+
+    function isValidRecommendation(data) {
+      return data.keys().hasAll(['name', 'category', 'description', 'imageUrl', 'region', 'likesCount', 'authorId', 'createdAt']) &&
+             data.keys().size() == 8 &&
+             data.name is string && data.name.size() <= 100 &&
+             data.category in ['Food', 'Cafe'] &&
+             data.description is string && data.description.size() <= 1000 &&
+             data.imageUrl is string && data.imageUrl.size() <= 500 &&
+             data.region in ['Tokyo', 'Tsukuba'] &&
+             data.likesCount is number &&
+             data.authorId == request.auth.uid &&
+             data.createdAt == request.time;
+    }
+
+    function isValidLike(data, userId) {
+      return data.keys().hasAll(['userId', 'createdAt']) &&
+             data.keys().size() == 2 &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.createdAt == request.time;
+    }
+
+    // 4. Collections
+    match /config/main {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if false; // Only manageable via console
+    }
+
+    match /posts/{postId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidId(postId) && isValidPost(incoming());
+      allow update: if isAdmin() && isValidId(postId) && isValidPost(incoming()) && 
+                    incoming().createdAt == existing().createdAt &&
+                    incoming().authorId == existing().authorId;
+      allow delete: if isAdmin() && isValidId(postId);
+    }
+
+    match /recommendations/{recoId} {
+      allow read: if true;
+      
+      allow create: if isAdmin() && isValidId(recoId) && isValidRecommendation(incoming());
+      
+      allow update: if isValidId(recoId) && (
+        // Admin full update
+        (isAdmin() && isValidRecommendation(incoming()) && 
+         incoming().createdAt == existing().createdAt &&
+         incoming().authorId == existing().authorId) ||
+        // Public like count update
+        (isSignedIn() && 
+         incoming().diff(existing()).affectedKeys().hasOnly(['likesCount']) &&
+         (incoming().likesCount == existing().likesCount + 1 || incoming().likesCount == existing().likesCount - 1))
+      );
+      
+      allow delete: if isAdmin() && isValidId(recoId);
+
+      // Subcollection for tracking likes
+      match /userLikes/{userId} {
+        allow read: if true;
+        allow create: if isSignedIn() && userId == request.auth.uid && isValidId(recoId) && isValidLike(incoming(), userId);
+        allow delete: if isSignedIn() && userId == request.auth.uid && isValidId(recoId);
+      }
+    }
+  }
+}

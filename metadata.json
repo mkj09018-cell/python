@@ -1,0 +1,8 @@
+{
+  "name": "Japan Localog",
+  "description": "일본의 찐맛집과 놀거리를 소개하는 로컬 가이드 웹사이트",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

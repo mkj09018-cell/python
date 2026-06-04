@@ -1,0 +1,20 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap');
+@import "leaflet/dist/leaflet.css";
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  
+  --color-brand-yellow: #FEF9C3; /* pastel yellow */
+  --color-brand-blue: #E5F5FF; /* light blue */
+  --color-brand-mint: #99F6E4; /* mint color */
+  --color-brand-accent: #00A1FF; /* main brand blue */
+  --color-brand-text: #1E293B;
+}
+
+@layer base {
+  body {
+    @apply text-brand-text bg-slate-50 font-sans;
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "entities": {
+    "Post": {
+      "title": "Travel Post",
+      "description": "A record of a visit to a specific region in Japan",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Title of the post" },
+        "content": { "type": "string", "description": "Detailed review and text" },
+        "region": { "type": "string", "description": "The Japan region visited" },
+        "imageUrl": { "type": "string", "description": "URL of the main photo" },
+        "authorId": { "type": "string", "description": "UID of the editor who created this" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": ["title", "content", "region", "imageUrl", "authorId", "createdAt"]
+    },
+    "Recommendation": {
+      "title": "Gourmet Recommendation",
+      "description": "A recommended restaurant or cafe",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the place" },
+        "category": { "type": "string", "enum": ["Food", "Cafe"], "description": "Type of establishment" },
+        "description": { "type": "string", "description": "Short description" },
+        "imageUrl": { "type": "string", "description": "Thumbnail image URL" },
+        "region": { "type": "string", "enum": ["Tokyo", "Tsukuba"], "description": "Region category" },
+        "likesCount": { "type": "number", "description": "Total number of likes" },
+        "authorId": { "type": "string", "description": "UID of the editor" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": ["name", "category", "description", "imageUrl", "region", "likesCount", "authorId", "createdAt"]
+    },
+    "SiteConfig": {
+      "title": "Site Configuration",
+      "description": "Global settings for the blog",
+      "type": "object",
+      "properties": {
+        "statusMessage": { "type": "string", "description": "Owner's daily message" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["statusMessage", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/config/main": {
+      "schema": "SiteConfig",
+      "description": "Primary configuration document"
+    },
+    "/posts/{postId}": {
+      "schema": "Post",
+      "description": "Collection of travel blog posts"
+    },
+    "/recommendations/{recoId}": {
+      "schema": "Recommendation",
+      "description": "Collection of recommended eateries"
+    },
+    "/recommendations/{recoId}/userLikes/{userId}": {
+      "schema": {
+        "title": "User Like",
+        "type": "object",
+        "properties": {
+          "userId": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["userId", "createdAt"]
+      },
+      "description": "Subcollection to track which users liked a recommendation"
+    }
+  }
+}
